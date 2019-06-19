@@ -31,7 +31,6 @@ classdef startMenu < handle
                     continue;
                 end
                 obj.id = input('please enter id: ');
-%                 x = ); %testing
                 disp(sprintf('entered %d', obj.id));
                 obj.group = input('please enter group number: ');
                 obj.trial = input('please enter trial number: ');

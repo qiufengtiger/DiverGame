@@ -11,6 +11,8 @@ classdef gameWindow < handle
         gameFigure;
         diverImage;
         diverAlphaChannel;
+        diverImageFlipped;
+        diverAlphaChannelFlipped;
         diverImageObject;
         chestImage;
         chestAlphaChannel;
@@ -51,9 +53,9 @@ classdef gameWindow < handle
             obj.chestWidth = 75;
             obj.chestHeight = 71;
             
-            obj.moveStepSize = 20;
+            obj.moveStepSize = 15;
             
-            obj.scoreDistance = 40;
+            obj.scoreDistance = 50;
             obj.scoreStarted = false;
             obj.scoreStartTime = 0;
             
@@ -76,6 +78,8 @@ classdef gameWindow < handle
             [a, ~, b] = imread('scuba75.png');
             obj.diverImage = a;
             obj.diverAlphaChannel = b;
+            obj.diverImageFlipped = flip(a, 2);
+            obj.diverAlphaChannelFlipped = flip(b, 2);
             [a, ~, b] = imread('tc75.png');
             obj.chestImage = a;
             obj.chestAlphaChannel = b;
@@ -115,7 +119,7 @@ classdef gameWindow < handle
             else
                 chestPos = obj.chestPatternL(obj.chestIndex + 1);
             end
-            obj.chestIndex = mod(obj.chestIndex + 1, 10); % loop  
+            obj.chestIndex = mod(obj.chestIndex + 1, 11); % loop  
             switch(chestPos)
                 % far left
                 case 0
@@ -148,7 +152,8 @@ classdef gameWindow < handle
         function obj = paint(obj, xPos, yPos, type) % type is 'diver', 'chest' or 'score'
             if(strcmp(type, 'score'))
                 scoreText = sprintf('Score: %d', obj.score);
-                obj.scoreObject = text(200, -250, scoreText, 'FontSize', 18, 'Color', 'white');
+                axes('Position', [0.8, 0.95, 0, 0]);
+                obj.scoreObject = text(0, 0, scoreText, 'FontSize', 18, 'Color', 'white');
                 return
             end
             xPos = xPos / obj.xWindowSize;
@@ -156,7 +161,7 @@ classdef gameWindow < handle
             if(strcmp(type, 'diver'))
                 axes('Position', [xPos, yPos + 0.02, obj.diverWidth/obj.xWindowSize, obj.diverHeight/obj.yWindowSize + 0.02]); % related to size & pos; it's normalized
                 obj.diverImageObject = imshow(obj.diverImage);
-                obj.diverImageObject.AlphaData = obj.diverAlphaChannel; 
+                obj.diverImageObject.AlphaData = obj.diverAlphaChannel;              
             elseif(strcmp(type, 'chest'))
                 axes('Position', [xPos, yPos, obj.chestWidth/obj.xWindowSize, obj.chestHeight/obj.yWindowSize]);
                 obj.chestImageObject = imshow(obj.chestImage);
@@ -199,12 +204,12 @@ classdef gameWindow < handle
             obj.yDiverCurrentPos = yPos;
             repaintDiver(obj);
             if(checkScored(obj))
-                obj.score = obj.score + 1;
-                repaintScore(obj);
+                obj.score = obj.score + 1;  
                 repaintChest(obj);
                 obj.xDiverCurrentPos = obj.xWindowSize / 2;
                 obj.yDiverCurrentPos = obj.yChestCurrentPos;
                 repaintDiver(obj);
+                repaintScore(obj);
             end
                 
         end
