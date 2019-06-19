@@ -10,4 +10,3 @@ id = getId(menu)
 group = getGroup(menu)
 trial = getTrial(menu)
 gw = gameWindow(dir, id, group, trial);
-setup(gw);

@@ -1,6 +1,6 @@
-classdef gameWindow < handle
+classdef test < handle
     % the game window is 650 by 650
-    % variable obj refers to the gameWindow object
+    % variable obj refers to the test object
     properties
         % game window settings
         gameFigure;
@@ -18,7 +18,6 @@ classdef gameWindow < handle
         diverAlphaChannelFlipped;
         diverImageDir;
         diverImageObject;
-        diverImageFlippedObject
         chestImage;
         chestAlphaChannel;
         chestImageObject;
@@ -42,6 +41,10 @@ classdef gameWindow < handle
         chestPatternR;
         chestPatternL;
         chestNumInTrial;
+        
+        diverAxes;
+        chestAxes;
+        scoreAxes;
     end
     
     properties(Constant)
@@ -58,7 +61,7 @@ classdef gameWindow < handle
         
     
     methods
-        function obj = gameWindow(dirIn, idIn, groupIn, trialIn)
+        function obj = test(dirIn, idIn, groupIn, trialIn)
             obj.xWindowSize = 650;
             obj.yWindowSize = 650;
             % from previous java game
@@ -99,57 +102,50 @@ classdef gameWindow < handle
         end
         
         function obj = setup(obj)
-            obj.gameFigure = figure('Name', 'DiverGame', 'NumberTitle', 'off', 'Color', [0, 0.749, 1], 'Units', 'pixels', 'Resize', 'off', ...
-            'Position', [100, 100, obj.xWindowSize, obj.yWindowSize], 'keyPressFcn', {@keyPressed, obj}, 'MenuBar', 'none', 'ToolBar', 'none');       
             
-            axes('Units', 'pixels', 'Position', [1, 1, 650, 650], 'XLim', [1, 650], 'YLim', [1, 650], 'Visible', 'off', 'YDir', 'normal');
-            
+            obj.gameFigure = figure('Name', 'DiverGame', 'NumberTitle', 'off', 'Color', [0, 0.749, 1], 'Resize', 'off', ...
+            'Position', [100, 100, obj.xWindowSize, obj.yWindowSize], 'keyPressFcn', {@keyPressed, obj}, 'MenuBar', 'none', 'ToolBar', 'none');  
+        
+        
+            axes('Units', 'pixels', 'Position', [1, 1, 650, 650], 'XLim', [1, 650], 'YLim', [1, 650], 'Visible', 'off');
+            hold on;  
             [a, ~, b] = imread('scuba75.png');
             obj.diverImage = a;
             obj.diverAlphaChannel = b;
             obj.diverImageFlipped = flip(a, 2);
-            obj.diverAlphaChannelFlipped = flip(b, 2);                      
+            obj.diverAlphaChannelFlipped = flip(b, 2);
             [a, ~, b] = imread('tc75.png');
             obj.chestImage = a;
             obj.chestAlphaChannel = b;
-            
-            hold on;
-       
             obj.diverImageObject = imshow(obj.diverImage);
             obj.diverImageObject.AlphaData = obj.diverAlphaChannel;
-            
-            obj.diverImageFlippedObject = imshow(obj.diverImageFlipped);
-            obj.diverImageFlippedObject.AlphaData = obj.diverAlphaChannelFlipped;
-            
             obj.chestImageObject = imshow(obj.chestImage);
-            obj.chestImageObject.AlphaData = obj.chestAlphaChannel;
+            obj.chestImageObject.AlphaData = obj.chestAlphaChannel;        
+            hold off;    
+            obj.chestIndex = obj.chestIndex + 1;
             
-            hold off;
-            
-            paint(obj, obj.xChestCurrentPos, obj.yChestCurrentPos, gameWindow.CHEST);
-            paint(obj, obj.xDiverCurrentPos, obj.yDiverCurrentPos, gameWindow.DIVER); 
-            paint(obj, 500, 500, gameWindow.SCORE);
-            
+            paint(obj, obj.xChestCurrentPos, obj.yChestCurrentPos, test.CHEST);
+            paint(obj, obj.xDiverCurrentPos, obj.yDiverCurrentPos, test.DIVER); 
+            paint(obj, 500, 500, test.SCORE); 
             function keyPressed(figure, KeyData, obj)
                 switch(KeyData.Key)
                     case 'uparrow'
-                        moveDiver(obj, gameWindow.UP);
+                        moveDiver(obj, test.UP);
                     case 'downarrow'
-                        moveDiver(obj, gameWindow.DOWN);
+                        moveDiver(obj, test.DOWN);
                     case 'rightarrow'
-                        moveDiver(obj, gameWindow.RIGHT);
+                        moveDiver(obj, test.RIGHT);
                     case 'leftarrow'
-                        moveDiver(obj, gameWindow.LEFT);
+                        moveDiver(obj, test.LEFT);
                     otherwise
                         disp('command not recognized');
                 end
             end
-            
             text(1, 1, 'pos 1, 1');
             text(1, 650 - 10, 'pos 1, 650');
             text(650 - 100, 1, 'pos 650, 1');
             text(650 - 100, 650 - 10, 'pos 650, 650');
-            
+            get(gca)
         end
         
         function obj = moveDiver(obj, command)
@@ -170,16 +166,16 @@ classdef gameWindow < handle
             xPos = obj.xDiverCurrentPos;
             yPos = obj.yDiverCurrentPos;
             switch(command)
-                case gameWindow.UP
+                case test.UP
                     yPos = yPos + obj.moveStepSize;
-                case gameWindow.DOWN
+                case test.DOWN
                     yPos = yPos - obj.moveStepSize;
-                case gameWindow.RIGHT
+                case test.RIGHT
                     xPos = xPos + obj.moveStepSize;
-                    obj.diverImageDir = gameWindow.RIGHT;
-                case gameWindow.LEFT
+                    obj.diverImageDir = test.RIGHT;
+                case test.LEFT
                     xPos = xPos - obj.moveStepSize;
-                    obj.diverImageDir = gameWindow.LEFT;
+                    obj.diverImageDir = test.LEFT;
             end
             obj.xDiverCurrentPos = xPos;
             obj.yDiverCurrentPos = yPos;
@@ -189,11 +185,11 @@ classdef gameWindow < handle
         function obj = repaintDiver(obj)
             xPos = obj.xDiverCurrentPos;
             yPos = obj.yDiverCurrentPos;
-%             removeImageObject(obj, gameWindow.DIVER);
-            if(obj.diverImageDir == gameWindow.LEFT)
-                paint(obj, xPos, yPos, gameWindow.DIVERFLIPPED);
+%             removeImageObject(obj, test.DIVER);
+            if(obj.diverImageDir == test.LEFT)
+                paint(obj, xPos, yPos, test.DIVERFLIPPED);
             else
-                paint(obj, xPos, yPos, gameWindow.DIVER);
+                paint(obj, xPos, yPos, test.DIVER);
             end
             
         end
@@ -224,31 +220,45 @@ classdef gameWindow < handle
             yPos = rand * (obj.yWindowSize - obj.chestHeight);
             obj.xChestCurrentPos = xPos;
             obj.yChestCurrentPos = yPos;
-%             removeImageObject(obj, gameWindow.CHEST);
-            paint(obj, xPos, yPos, gameWindow.CHEST);
+%             removeImageObject(obj, test.CHEST);
+            paint(obj, xPos, yPos, test.CHEST);
         end
         
         function obj = repaintScore(obj)
-           removeImageObject(obj, gameWindow.SCORE);
-           paint(obj, 500, 500, gameWindow.SCORE);
+%            removeImageObject(obj, test.SCORE);
+           paint(obj, 500, 500, test.SCORE);
         end
          
-        function obj = paint(obj, xPos, yPos, type) % type is 'diver', 'diverFlipped', 'chest' or 'score'
-            if(type == gameWindow.SCORE)
+        function obj = paint(obj, xPos1, yPos1, type) % type is 'diver', 'diverFlipped', 'chest' or 'score'
+            if(type == test.SCORE)
                 scoreText = sprintf('Score: %d', obj.score);
-                obj.scoreObject = text(xPos, yPos, scoreText, 'FontSize', 18, 'Color', 'white');
+%                 set(gca, 'Position', [500, 500, 600, 600]);
+                obj.scoreObject = text(xPos1, yPos1, scoreText, 'FontSize', 18, 'Color', 'white');
                 return
             end
-%             xPos = xPos1 / obj.xWindowSize;
-%             yPos = yPos1 / obj.yWindowSize;
-            if(type == gameWindow.DIVER)
-                set(obj.diverImageObject, 'XData', [xPos, xPos + obj.diverWidth], 'YData', [yPos, yPos + obj.diverHeight], 'Clipping', 'off');
+            xPos = xPos1 / obj.xWindowSize;
+            yPos = yPos1 / obj.yWindowSize;
+            if(type == test.DIVER)
+%                 axes('Position', [xPos, yPos + 0.02, obj.diverWidth/obj.xWindowSize, obj.diverHeight/obj.yWindowSize + 0.02]); % related to size & pos; it's normalized
+%                 set(gca, 'Position', [xPos, yPos + 0.02, obj.diverWidth/obj.xWindowSize, obj.diverHeight/obj.yWindowSize + 0.02]);
+%                 obj.diverImageObject = imshow(obj.diverImage);
+%                 obj.diverImageObject.AlphaData = obj.diverAlphaChannel;
+                set(obj.diverImageObject, 'XData', [xPos1, xPos1 + obj.diverWidth], 'YData', [yPos1, yPos1 + obj.diverHeight], 'Clipping', 'off');
                 drawnow;
-            elseif(type == gameWindow.DIVERFLIPPED)
-                set(obj.diverImageFlippedObject, 'XData', [xPos, xPos + obj.diverWidth], 'YData', [yPos, yPos + obj.diverHeight], 'Clipping', 'off');
+            elseif(type == test.DIVERFLIPPED)
+%                 axes('Position', [xPos, yPos + 0.02, obj.diverWidth/obj.xWindowSize, obj.diverHeight/obj.yWindowSize + 0.02]); % related to size & pos; it's normalized
+%                 set(gca, 'Position', [xPos, yPos + 0.02, obj.diverWidth/obj.xWindowSize, obj.diverHeight/obj.yWindowSize + 0.02]);
+%                 obj.diverImageObject = imshow(obj.diverImageFlipped);
+%                 obj.diverImageObject.AlphaData = obj.diverAlphaChannelFlipped;
+                set(obj.diverImageObject, 'XData', [xPos1, xPos1 + obj.diverWidth], 'YData', [yPos1, yPos1 + obj.diverHeight], 'Clipping', 'off');
                 drawnow;
-            elseif(type == gameWindow.CHEST)
-                set(obj.chestImageObject, 'XData', [xPos, xPos + obj.chestWidth], 'YData', [yPos, yPos + obj.chestHeight], 'Clipping', 'off');
+            elseif(type == test.CHEST)
+%                 axes('Position', [xPos, yPos, obj.chestWidth/obj.xWindowSize, obj.chestHeight/obj.yWindowSize]);
+%                 set(gca, 'Position', [xPos, yPos, obj.chestWidth/obj.xWindowSize, obj.chestHeight/obj.yWindowSize]);
+%                 obj.chestImageObject = imshow(obj.chestImage);
+%                 obj.chestImageObject.AlphaData = obj.chestAlphaChannel;
+                set(obj.chestImageObject, 'XData', [xPos1, xPos1 + obj.chestWidth], 'YData', [yPos1, yPos1 + obj.chestHeight], 'Clipping', 'off');
+%                 get(gca)
                 drawnow;
             else
                 disp('object type not recognized in paint method');
@@ -256,11 +266,11 @@ classdef gameWindow < handle
         end
         
         function obj = removeImageObject(obj, type)
-            if(type == gameWindow.DIVER)
+            if(type == test.DIVER)
                 delete(obj.diverImageObject);   
-            elseif(type == gameWindow.CHEST)
+            elseif(type == test.CHEST)
                 delete(obj.chestImageObject);
-            elseif(type == gameWindow.SCORE)
+            elseif(type == test.SCORE)
                 delete(obj.scoreObject);
             else
                 disp('object type not recognized in remove method');
@@ -294,10 +304,10 @@ classdef gameWindow < handle
         end
         
         function isBorder = checkBorder(obj, command)
-            if((obj.xDiverCurrentPos <= obj.moveStepSize && command == gameWindow.LEFT) || ...
-              ((obj.xWindowSize - obj.xDiverCurrentPos - obj.diverWidth) <= obj.moveStepSize && command == gameWindow.RIGHT) || ...
-              (obj.yDiverCurrentPos <= obj.moveStepSize && command == gameWindow.DOWN) || ...
-              ((obj.yWindowSize - obj.yDiverCurrentPos - obj.diverHeight) <= obj.moveStepSize && command == gameWindow.UP))
+            if((obj.xDiverCurrentPos <= obj.moveStepSize && command == test.LEFT) || ...
+              ((obj.xWindowSize - obj.xDiverCurrentPos - obj.diverWidth) <= obj.moveStepSize && command == test.RIGHT) || ...
+              (obj.yDiverCurrentPos <= obj.moveStepSize && command == test.DOWN) || ...
+              ((obj.yWindowSize - obj.yDiverCurrentPos - obj.diverHeight) <= obj.moveStepSize && command == test.UP))
                 isBorder = true;
             else
                 isBorder = false;
