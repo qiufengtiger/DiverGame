@@ -4,8 +4,6 @@ classdef gameWindow < handle
     properties
         % game window settings
         gameFigure;
-        xWindowSize;
-        yWindowSize;
         xDiverCurrentPos;
         yDiverCurrentPos;
         xChestCurrentPos;
@@ -25,26 +23,37 @@ classdef gameWindow < handle
         
         score;
         scoreObject;
-        moveStepSize; 
-        scoreDistance;
         scoreStarted;
         scoreStartTime;
         lastMoveTime;
-        diverWidth
-        diverHeight;
-        chestWidth;
-        chestHeight;    
+        lastScoreTime;
+        
         dir;
         id;
         group;
         trial;
+        
         chestIndex;
         chestPatternR;
         chestPatternL;
         chestNumInTrial;
+        chestPos;
+        totalTimePos0;
+        totalTimePos1;
+        totalTimePos2;
+        totalTimePos3;
+        totalTimePos4;
+        numPos0;
+        numPos1;
+        numPos2;
+        numPos3;
+        numPos4;
     end
     
     properties(Constant)
+        
+        ON_TEST = 1;
+        
         UP = 0;
         DOWN = 1;
         RIGHT = 2;
@@ -54,30 +63,33 @@ classdef gameWindow < handle
         DIVERFLIPPED = 1;
         CHEST = 2;
         SCORE = 3;
+        
+        X_WINDOW_SIZE = 650;
+        Y_WINDOW_SIZE = 650;
+        DIVER_WIDTH = 75;
+        DIVER_HEIGHT = 38;
+        CHEST_WIDTH = 75;
+        CHEST_HEIGHT = 71;
+        
+        X_SCORE_POS = 530; 
+        Y_SCORE_POS = 30;
+        
+        MOVE_STEP_SIZE = 15;
+        SCORE_DISTANCE = 40;
     end
         
     
     methods
         function obj = gameWindow(dirIn, idIn, groupIn, trialIn)
-            obj.xWindowSize = 650;
-            obj.yWindowSize = 650;
             % from previous java game
-            obj.xDiverCurrentPos = obj.xWindowSize / 2;
-            obj.yDiverCurrentPos = obj.yWindowSize / 2;
-            obj.xChestCurrentPos = obj.xWindowSize / 2;
-            obj.yChestCurrentPos = obj.yWindowSize / 2;
+            obj.xDiverCurrentPos = gameWindow.X_WINDOW_SIZE / 2;
+            obj.yDiverCurrentPos = gameWindow.Y_WINDOW_SIZE / 2;
+            obj.xChestCurrentPos = gameWindow.X_WINDOW_SIZE / 2;
+            obj.yChestCurrentPos = gameWindow.Y_WINDOW_SIZE / 2;
             obj.score = 0;
 %             setup(obj);
-            obj.diverWidth = 75;
-            obj.diverHeight = 38;
-            obj.chestWidth = 75;
-            obj.chestHeight = 71;
-            
             obj.diverImageDir = 0; % right
             
-            obj.moveStepSize = 5;
-            
-            obj.scoreDistance = 50;
             obj.scoreStarted = false;
             obj.scoreStartTime = 0;
             
@@ -86,21 +98,34 @@ classdef gameWindow < handle
             obj.group = groupIn;
             obj.trial = trialIn;
             
-            obj.chestIndex = 0; % 0 to 10; 11 chests
+            obj.totalTimePos0 = 0;
+            obj.totalTimePos1 = 0;
+            obj.totalTimePos2 = 0;
+            obj.totalTimePos3 = 0;
+            obj.totalTimePos4 = 0;
+            obj.numPos0 = 0;
+            obj.numPos1 = 0;
+            obj.numPos2 = 0;
+            obj.numPos3 = 0;
+            obj.numPos4 = 0;
+            
+            obj.chestIndex = 1; % 1 to 11
             % though the first chest is also hardcoded, it won't be read by
             % repaintChest() method
             % since the first chest is created directly using paint(chest) 
             obj.chestPatternR = [2, 3, 0, 4, 3, 1, 1, 4, 3, 0, 1];
             obj.chestPatternL = [2, 1, 0, 4, 3, 1, 1, 4, 3, 0, 3];
-            obj.chestNumInTrial = 11;
+            if(length(obj.chestPatternR) ~= length(obj.chestPatternL))
+                error('lengths of two patterns do not match!');
+            end
+            obj.chestNumInTrial = length(obj.chestPatternR); 
             
-            obj.lastMoveTime = datetime; % start 30 sec timing here
             setup(obj);
         end
         
         function obj = setup(obj)
             obj.gameFigure = figure('Name', 'DiverGame', 'NumberTitle', 'off', 'Color', [0, 0.749, 1], 'Units', 'pixels', 'Resize', 'off', ...
-            'Position', [100, 100, obj.xWindowSize, obj.yWindowSize], 'keyPressFcn', {@keyPressed, obj}, 'MenuBar', 'none', 'ToolBar', 'none');       
+            'Position', [100, 100, gameWindow.X_WINDOW_SIZE, gameWindow.Y_WINDOW_SIZE], 'keyPressFcn', {@keyPressed, obj}, 'MenuBar', 'none', 'ToolBar', 'none');       
             
             axes('Units', 'pixels', 'Position', [1, 1, 650, 650], 'XLim', [1, 650], 'YLim', [1, 650], 'Visible', 'off', 'YDir', 'normal');
             
@@ -114,28 +139,36 @@ classdef gameWindow < handle
             obj.chestAlphaChannel = b;
             
             hold on;
-       
-            obj.diverImageObject = imshow(obj.diverImage);
-            obj.diverImageObject.AlphaData = obj.diverAlphaChannel;
-            
-            obj.diverImageFlippedObject = imshow(obj.diverImageFlipped);
-            obj.diverImageFlippedObject.AlphaData = obj.diverAlphaChannelFlipped;
-            
             obj.chestImageObject = imshow(obj.chestImage);
-            obj.chestImageObject.AlphaData = obj.chestAlphaChannel;
-            
+            obj.diverImageObject = imshow(obj.diverImage);
+            obj.diverImageFlippedObject = imshow(obj.diverImageFlipped);   
             hold off;
             
+            obj.chestImageObject.AlphaData = obj.chestAlphaChannel;
+            obj.diverImageObject.AlphaData = obj.diverAlphaChannel;       
+            obj.diverImageFlippedObject.AlphaData = obj.diverAlphaChannelFlipped;
+                   
+            % for some strange reason the y axis is reversed after reading
+            % images       
+            
+            set(obj.diverImageObject, 'Visible', 'on');
+            set(obj.diverImageFlippedObject, 'Visible', 'off');
+            paint(obj, obj.xDiverCurrentPos, obj.yDiverCurrentPos, gameWindow.DIVER);
+            obj.chestPos = 2;
             paint(obj, obj.xChestCurrentPos, obj.yChestCurrentPos, gameWindow.CHEST);
-            paint(obj, obj.xDiverCurrentPos, obj.yDiverCurrentPos, gameWindow.DIVER); 
-            paint(obj, 500, 500, gameWindow.SCORE);
+            paint(obj, gameWindow.X_SCORE_POS, gameWindow.Y_SCORE_POS, gameWindow.SCORE);
+            
+            obj.lastMoveTime = datetime; % start 30 sec timing here
+            obj.lastScoreTime = datetime; % count time taken to get chests
             
             function keyPressed(figure, KeyData, obj)
                 switch(KeyData.Key)
                     case 'uparrow'
-                        moveDiver(obj, gameWindow.UP);
-                    case 'downarrow'
+%                         moveDiver(obj, gameWindow.UP);
                         moveDiver(obj, gameWindow.DOWN);
+                    case 'downarrow'
+%                         moveDiver(obj, gameWindow.DOWN);
+                        moveDiver(obj, gameWindow.UP);
                     case 'rightarrow'
                         moveDiver(obj, gameWindow.RIGHT);
                     case 'leftarrow'
@@ -144,46 +177,71 @@ classdef gameWindow < handle
                         disp('command not recognized');
                 end
             end
+            if(gameWindow.ON_TEST)
+                text(1, 1, 'pos 1, 1');
+                text(1, 650 - 10, 'pos 1, 650');
+                text(650 - 100, 1, 'pos 650, 1');
+                text(650 - 100, 650 - 10, 'pos 650, 650');  
+            end
             
-            text(1, 1, 'pos 1, 1');
-            text(1, 650 - 10, 'pos 1, 650');
-            text(650 - 100, 1, 'pos 650, 1');
-            text(650 - 100, 650 - 10, 'pos 650, 650');
             
         end
         
         function obj = moveDiver(obj, command)
             timeTaken =  milliseconds(datetime - obj.lastMoveTime);
             obj.lastMoveTime = datetime; % reset 30 sec timer
-            if(checkScored(obj) || timeTaken > 30000)              
+            if(checkScored(obj) || timeTaken > 30000)
+                scoreTimeTaken = seconds(datetime - obj.lastScoreTime);
+                switch(obj.chestPos)
+                    case 0
+                        obj.totalTimePos0 = obj.totalTimePos0 + scoreTimeTaken;
+                        obj.numPos0 = obj.numPos0 + 1;
+                    case 1
+                        obj.totalTimePos1 = obj.totalTimePos1 + scoreTimeTaken;
+                        obj.numPos1 = obj.numPos1 + 1;
+                    case 2
+                        obj.totalTimePos2 = obj.totalTimePos2 + scoreTimeTaken;
+                        obj.numPos2 = obj.numPos2 + 1;
+                    case 3
+                        obj.totalTimePos3 = obj.totalTimePos3 + scoreTimeTaken;
+                        obj.numPos3 = obj.numPos3 + 1;
+                    case 4
+                        obj.totalTimePos4 = obj.totalTimePos4 + scoreTimeTaken;
+                        obj.numPos4 = obj.numPos4 + 1;
+                end
+                if(obj.chestIndex == obj.chestNumInTrial)
+                    writeResult(obj);
+                end
                 obj.score = obj.score + 1;
                 repaintChest(obj);
-                obj.xDiverCurrentPos = obj.xWindowSize / 2;
+                obj.xDiverCurrentPos = gameWindow.X_WINDOW_SIZE / 2;
                 obj.yDiverCurrentPos = obj.yChestCurrentPos;
                 repaintDiver(obj);
                 repaintScore(obj);
+                obj.lastScoreTime = datetime; % reset score timer
                 return
             elseif(checkBorder(obj, command))
                 disp('diver cannot move further!');
                 return
+            else
+                xPos = obj.xDiverCurrentPos;
+                yPos = obj.yDiverCurrentPos;
+                switch(command)
+                    case gameWindow.UP
+                        yPos = yPos + gameWindow.MOVE_STEP_SIZE;
+                    case gameWindow.DOWN
+                        yPos = yPos - gameWindow.MOVE_STEP_SIZE;
+                    case gameWindow.RIGHT
+                        xPos = xPos + gameWindow.MOVE_STEP_SIZE;
+                        obj.diverImageDir = gameWindow.RIGHT;
+                    case gameWindow.LEFT
+                        xPos = xPos - gameWindow.MOVE_STEP_SIZE;
+                        obj.diverImageDir = gameWindow.LEFT;
+                end
+                obj.xDiverCurrentPos = xPos;
+                obj.yDiverCurrentPos = yPos;
+                repaintDiver(obj);    
             end
-            xPos = obj.xDiverCurrentPos;
-            yPos = obj.yDiverCurrentPos;
-            switch(command)
-                case gameWindow.UP
-                    yPos = yPos + obj.moveStepSize;
-                case gameWindow.DOWN
-                    yPos = yPos - obj.moveStepSize;
-                case gameWindow.RIGHT
-                    xPos = xPos + obj.moveStepSize;
-                    obj.diverImageDir = gameWindow.RIGHT;
-                case gameWindow.LEFT
-                    xPos = xPos - obj.moveStepSize;
-                    obj.diverImageDir = gameWindow.LEFT;
-            end
-            obj.xDiverCurrentPos = xPos;
-            obj.yDiverCurrentPos = yPos;
-            repaintDiver(obj);             
         end
         
         function obj = repaintDiver(obj)
@@ -191,8 +249,12 @@ classdef gameWindow < handle
             yPos = obj.yDiverCurrentPos;
 %             removeImageObject(obj, gameWindow.DIVER);
             if(obj.diverImageDir == gameWindow.LEFT)
+                set(obj.diverImageObject, 'Visible', 'off');
+                set(obj.diverImageFlippedObject, 'Visible', 'on');
                 paint(obj, xPos, yPos, gameWindow.DIVERFLIPPED);
             else
+                set(obj.diverImageObject, 'Visible', 'on');
+                set(obj.diverImageFlippedObject, 'Visible', 'off');
                 paint(obj, xPos, yPos, gameWindow.DIVER);
             end
             
@@ -201,27 +263,27 @@ classdef gameWindow < handle
         function obj = repaintChest(obj)
             xPos = 0;
             yPos = 0;
+            obj.chestIndex = mod(obj.chestIndex, obj.chestNumInTrial) + 1;
             if(strcmp(obj.dir, 'R'))
-                chestPos = obj.chestPatternR(obj.chestIndex + 1);
+                obj.chestPos = obj.chestPatternR(obj.chestIndex);
             else
-                chestPos = obj.chestPatternL(obj.chestIndex + 1);
-            end
-            obj.chestIndex = mod(obj.chestIndex + 1, obj.chestNumInTrial); % loop  
-            switch(chestPos)
+                obj.chestPos = obj.chestPatternL(obj.chestIndex);
+            end 
+            switch(obj.chestPos)
                 % far left
                 case 0
                     xPos = 40;
                 case 1
-                    xPos = obj.xWindowSize / 4;
+                    xPos = gameWindow.X_WINDOW_SIZE / 4;
                 case 2
-                    xPos = obj.xWindowSize / 2;
+                    xPos = gameWindow.X_WINDOW_SIZE / 2;
                 case 3
-                    xPos = obj.xWindowSize / 4 * 3;
+                    xPos = gameWindow.X_WINDOW_SIZE / 4 * 3;
                 % far right
                 case 4
-                    xPos = obj.xWindowSize - obj.chestWidth - 40;
+                    xPos = gameWindow.X_WINDOW_SIZE - gameWindow.CHEST_WIDTH - 40;
             end
-            yPos = rand * (obj.yWindowSize - obj.chestHeight);
+            yPos = rand * (gameWindow.Y_WINDOW_SIZE - gameWindow.CHEST_HEIGHT);
             obj.xChestCurrentPos = xPos;
             obj.yChestCurrentPos = yPos;
 %             removeImageObject(obj, gameWindow.CHEST);
@@ -230,7 +292,29 @@ classdef gameWindow < handle
         
         function obj = repaintScore(obj)
            removeImageObject(obj, gameWindow.SCORE);
-           paint(obj, 500, 500, gameWindow.SCORE);
+           paint(obj, gameWindow.X_SCORE_POS, gameWindow.Y_SCORE_POS, gameWindow.SCORE);
+        end
+        
+        function obj = writeResult(obj)
+           fileName = sprintf('./data/timeData_%d_%d_%d.csv' , obj.id, obj.group, obj.trial);
+           averagePos0 = obj.totalTimePos0 / obj.numPos0;
+           averagePos1 = obj.totalTimePos1 / obj.numPos1;
+           averagePos2 = obj.totalTimePos2 / obj.numPos2;
+           averagePos3 = obj.totalTimePos3 / obj.numPos3;
+           averagePos4 = obj.totalTimePos4 / obj.numPos4;
+           averageTotal = (obj.totalTimePos0 + obj.totalTimePos1 + obj.totalTimePos2 + obj.totalTimePos3 + obj.totalTimePos4) / ...
+               (obj.numPos0 + obj.numPos1 + obj.numPos2 + obj.numPos3 + obj.numPos4);
+           file = fopen(fileName, 'w');
+           fprintf(file, 'Time values in seconds\n');
+           fprintf(file, 'Chest No., #Chests, Average time\n');
+           columnName = {'Position 0', 'Position 1', 'Position 2', 'Position 3', 'Position 4', 'Total'};
+           columnNumPos = {obj.numPos0, obj.numPos1, obj.numPos2, obj.numPos3, obj.numPos4, (obj.numPos0 + obj.numPos1 + obj.numPos2 + obj.numPos3 + obj.numPos4)};
+           columnTime = {averagePos0, averagePos1, averagePos2, averagePos3, averagePos4, averageTotal};
+           for i = 1 : length(columnName)
+               fprintf(file, '%s, %d, %d\n', columnName{i}, columnNumPos{i}, columnTime{i});
+           end
+           fclose(file);
+           disp('result file generated!');
         end
          
         function obj = paint(obj, xPos, yPos, type) % type is 'diver', 'diverFlipped', 'chest' or 'score'
@@ -239,16 +323,14 @@ classdef gameWindow < handle
                 obj.scoreObject = text(xPos, yPos, scoreText, 'FontSize', 18, 'Color', 'white');
                 return
             end
-%             xPos = xPos1 / obj.xWindowSize;
-%             yPos = yPos1 / obj.yWindowSize;
             if(type == gameWindow.DIVER)
-                set(obj.diverImageObject, 'XData', [xPos, xPos + obj.diverWidth], 'YData', [yPos, yPos + obj.diverHeight], 'Clipping', 'off');
+                set(obj.diverImageObject, 'XData', [xPos, xPos + gameWindow.DIVER_WIDTH], 'YData', [yPos + 15, yPos + gameWindow.DIVER_HEIGHT + 15], 'Clipping', 'off');
                 drawnow;
             elseif(type == gameWindow.DIVERFLIPPED)
-                set(obj.diverImageFlippedObject, 'XData', [xPos, xPos + obj.diverWidth], 'YData', [yPos, yPos + obj.diverHeight], 'Clipping', 'off');
+                set(obj.diverImageFlippedObject, 'XData', [xPos, xPos + gameWindow.DIVER_WIDTH], 'YData', [yPos + 15, yPos + gameWindow.DIVER_HEIGHT + 15], 'Clipping', 'off');
                 drawnow;
             elseif(type == gameWindow.CHEST)
-                set(obj.chestImageObject, 'XData', [xPos, xPos + obj.chestWidth], 'YData', [yPos, yPos + obj.chestHeight], 'Clipping', 'off');
+                set(obj.chestImageObject, 'XData', [xPos, xPos + gameWindow.CHEST_WIDTH], 'YData', [yPos, yPos + gameWindow.CHEST_HEIGHT], 'Clipping', 'off');
                 drawnow;
             else
                 disp('object type not recognized in paint method');
@@ -270,10 +352,10 @@ classdef gameWindow < handle
         function isScored = checkScored(obj)
             % diver: 75 * 38
             % chest: 75 * 71
-            xDistance = abs((obj.xDiverCurrentPos + (obj.diverWidth / 2)) - (obj.xChestCurrentPos + (obj.chestWidth / 2)));
-            yDistance = abs((obj.yDiverCurrentPos + (obj.diverHeight / 2)) - (obj.yChestCurrentPos + (obj.chestHeight / 2)));
+            xDistance = abs((obj.xDiverCurrentPos + (gameWindow.DIVER_WIDTH / 2)) - (obj.xChestCurrentPos + (gameWindow.CHEST_WIDTH / 2)));
+            yDistance = abs((obj.yDiverCurrentPos + (gameWindow.DIVER_HEIGHT / 2)) - (obj.yChestCurrentPos + (gameWindow.CHEST_HEIGHT / 2)));
             distance = sqrt(xDistance ^ 2 + yDistance ^ 2);
-            if(distance < obj.scoreDistance)
+            if(distance < gameWindow.SCORE_DISTANCE)
                 if(~obj.scoreStarted)
                     obj.scoreStartTime = datetime;
                     obj.scoreStarted = true;
@@ -294,17 +376,15 @@ classdef gameWindow < handle
         end
         
         function isBorder = checkBorder(obj, command)
-            if((obj.xDiverCurrentPos <= obj.moveStepSize && command == gameWindow.LEFT) || ...
-              ((obj.xWindowSize - obj.xDiverCurrentPos - obj.diverWidth) <= obj.moveStepSize && command == gameWindow.RIGHT) || ...
-              (obj.yDiverCurrentPos <= obj.moveStepSize && command == gameWindow.DOWN) || ...
-              ((obj.yWindowSize - obj.yDiverCurrentPos - obj.diverHeight) <= obj.moveStepSize && command == gameWindow.UP))
+            if((obj.xDiverCurrentPos <= gameWindow.MOVE_STEP_SIZE && command == gameWindow.LEFT) || ...
+              ((gameWindow.X_WINDOW_SIZE - obj.xDiverCurrentPos - gameWindow.DIVER_WIDTH) <= gameWindow.MOVE_STEP_SIZE && command == gameWindow.RIGHT) || ...
+              (obj.yDiverCurrentPos <= gameWindow.MOVE_STEP_SIZE && command == gameWindow.DOWN) || ...
+              ((gameWindow.Y_WINDOW_SIZE - obj.yDiverCurrentPos - gameWindow.DIVER_HEIGHT) <= gameWindow.MOVE_STEP_SIZE && command == gameWindow.UP))
                 isBorder = true;
             else
                 isBorder = false;
             end
-        end    
-        
-        
+        end          
     end
     
     methods(Static)
