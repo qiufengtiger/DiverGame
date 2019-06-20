@@ -2,14 +2,14 @@ classdef gameWindow < handle
     % the game window is 650 by 650
     % variable obj refers to the gameWindow object
     properties
-        % game window settings
+        % game variables
         gameFigure;
         xDiverCurrentPos;
         yDiverCurrentPos;
         xChestCurrentPos;
         yChestCurrentPos;
         
-        % images
+        % images and score display
         diverImage;
         diverAlphaChannel;
         diverImageFlipped;
@@ -19,25 +19,30 @@ classdef gameWindow < handle
         diverImageFlippedObject
         chestImage;
         chestAlphaChannel;
-        chestImageObject;
-        
+        chestImageObject; 
         score;
-        scoreObject;
+        scoreObject;       
+        
+        % timing
         scoreStarted;
         scoreStartTime;
         lastMoveTime;
         lastScoreTime;
         
+        % user inputs
         dir;
         id;
         group;
         trial;
         
+        % chest spawning
         chestIndex;
         chestPatternR;
         chestPatternL;
         chestNumInTrial;
         chestPos;
+        
+        % result tracking
         totalTimePos0;
         totalTimePos1;
         totalTimePos2;
@@ -50,30 +55,32 @@ classdef gameWindow < handle
         numPos4;
     end
     
-    properties(Constant)
-        
+    properties(Constant)      
         ON_TEST = 1;
         
+        % directions
         UP = 0;
         DOWN = 1;
         RIGHT = 2;
         LEFT = 3;
         
+        % object types
         DIVER = 0;
         DIVERFLIPPED = 1;
         CHEST = 2;
         SCORE = 3;
         
+        % game window definations
         X_WINDOW_SIZE = 650;
         Y_WINDOW_SIZE = 650;
         DIVER_WIDTH = 75;
         DIVER_HEIGHT = 38;
         CHEST_WIDTH = 75;
         CHEST_HEIGHT = 71;
-        
         X_SCORE_POS = 530; 
         Y_SCORE_POS = 30;
         
+        % game behaviors definations
         MOVE_STEP_SIZE = 15;
         SCORE_DISTANCE = 40;
     end
@@ -87,17 +94,13 @@ classdef gameWindow < handle
             obj.xChestCurrentPos = gameWindow.X_WINDOW_SIZE / 2;
             obj.yChestCurrentPos = gameWindow.Y_WINDOW_SIZE / 2;
             obj.score = 0;
-%             setup(obj);
-            obj.diverImageDir = 0; % right
-            
+            obj.diverImageDir = gameWindow.RIGHT;
             obj.scoreStarted = false;
-            obj.scoreStartTime = 0;
-            
+            obj.scoreStartTime = 0;     
             obj.dir = dirIn;
             obj.id = idIn;
             obj.group = groupIn;
-            obj.trial = trialIn;
-            
+            obj.trial = trialIn;   
             obj.totalTimePos0 = 0;
             obj.totalTimePos1 = 0;
             obj.totalTimePos2 = 0;
@@ -127,7 +130,8 @@ classdef gameWindow < handle
             obj.gameFigure = figure('Name', 'DiverGame', 'NumberTitle', 'off', 'Color', [0, 0.749, 1], 'Units', 'pixels', 'Resize', 'off', ...
             'Position', [100, 100, gameWindow.X_WINDOW_SIZE, gameWindow.Y_WINDOW_SIZE], 'keyPressFcn', {@keyPressed, obj}, 'MenuBar', 'none', 'ToolBar', 'none');       
             
-            axes('Units', 'pixels', 'Position', [1, 1, 650, 650], 'XLim', [1, 650], 'YLim', [1, 650], 'Visible', 'off', 'YDir', 'normal');
+            axes('Units', 'pixels', 'Position', [1, 1, gameWindow.X_WINDOW_SIZE, gameWindow.Y_WINDOW_SIZE], ...
+                'XLim', [1, gameWindow.X_WINDOW_SIZE], 'YLim', [1, gameWindow.Y_WINDOW_SIZE], 'Visible', 'off', 'YDir', 'normal');
             
             [a, ~, b] = imread('scuba75.png');
             obj.diverImage = a;
@@ -149,8 +153,11 @@ classdef gameWindow < handle
             obj.diverImageFlippedObject.AlphaData = obj.diverAlphaChannelFlipped;
                    
             % for some strange reason the y axis is reversed after reading
-            % images       
+            % images, so up & down dirs in moveDiver are flipped        
             
+            % paint divers
+            % to flip diver's dir, set the target image visibility to on
+            % and the other one to off
             set(obj.diverImageObject, 'Visible', 'on');
             set(obj.diverImageFlippedObject, 'Visible', 'off');
             paint(obj, obj.xDiverCurrentPos, obj.yDiverCurrentPos, gameWindow.DIVER);
@@ -161,14 +168,13 @@ classdef gameWindow < handle
             obj.lastMoveTime = datetime; % start 30 sec timing here
             obj.lastScoreTime = datetime; % count time taken to get chests
             
+            % when key is pressed
             function keyPressed(figure, KeyData, obj)
                 switch(KeyData.Key)
                     case 'uparrow'
-%                         moveDiver(obj, gameWindow.UP);
-                        moveDiver(obj, gameWindow.DOWN);
-                    case 'downarrow'
-%                         moveDiver(obj, gameWindow.DOWN);
                         moveDiver(obj, gameWindow.UP);
+                    case 'downarrow'
+                        moveDiver(obj, gameWindow.DOWN);
                     case 'rightarrow'
                         moveDiver(obj, gameWindow.RIGHT);
                     case 'leftarrow'
@@ -182,15 +188,18 @@ classdef gameWindow < handle
                 text(1, 650 - 10, 'pos 1, 650');
                 text(650 - 100, 1, 'pos 650, 1');
                 text(650 - 100, 650 - 10, 'pos 650, 650');  
-            end
-            
-            
+            end     
         end
         
         function obj = moveDiver(obj, command)
-            timeTaken =  milliseconds(datetime - obj.lastMoveTime);
+            timeTaken =  milliseconds(datetime - obj.lastMoveTime); % check time took after last input
             obj.lastMoveTime = datetime; % reset 30 sec timer
-            if(checkScored(obj) || timeTaken > 30000)
+            scored = checkScored(obj);
+            if(scored || timeTaken > 30000)
+                % increment score only when player captures the chest
+                if(scored)
+                    obj.score = obj.score + 1;
+                end
                 scoreTimeTaken = seconds(datetime - obj.lastScoreTime);
                 switch(obj.chestPos)
                     case 0
@@ -211,8 +220,7 @@ classdef gameWindow < handle
                 end
                 if(obj.chestIndex == obj.chestNumInTrial)
                     writeResult(obj);
-                end
-                obj.score = obj.score + 1;
+                end  
                 repaintChest(obj);
                 obj.xDiverCurrentPos = gameWindow.X_WINDOW_SIZE / 2;
                 obj.yDiverCurrentPos = obj.yChestCurrentPos;
@@ -227,9 +235,11 @@ classdef gameWindow < handle
                 xPos = obj.xDiverCurrentPos;
                 yPos = obj.yDiverCurrentPos;
                 switch(command)
-                    case gameWindow.UP
-                        yPos = yPos + gameWindow.MOVE_STEP_SIZE;
+%                     case gameWindow.UP
                     case gameWindow.DOWN
+                        yPos = yPos + gameWindow.MOVE_STEP_SIZE;
+%                     case gameWindow.DOWN
+                    case gameWindow.UP
                         yPos = yPos - gameWindow.MOVE_STEP_SIZE;
                     case gameWindow.RIGHT
                         xPos = xPos + gameWindow.MOVE_STEP_SIZE;
