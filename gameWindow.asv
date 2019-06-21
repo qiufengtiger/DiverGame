@@ -299,10 +299,10 @@ classdef gameWindow < handle
                 case 4
                     xPos = gameWindow.X_WINDOW_SIZE - gameWindow.CHEST_WIDTH - 40;
             end
-            % y pos is randomly generated
             yPos = rand * (gameWindow.Y_WINDOW_SIZE - gameWindow.CHEST_HEIGHT);
             obj.xChestCurrentPos = xPos;
             obj.yChestCurrentPos = yPos;
+%             removeImageObject(obj, gameWindow.CHEST);
             paint(obj, xPos, yPos, gameWindow.CHEST);
         end
         
@@ -343,7 +343,6 @@ classdef gameWindow < handle
                 obj.scoreObject = text(xPos, yPos, scoreText, 'FontSize', 18, 'Color', 'white');
                 return
             end
-            % add 15 to diver's y pos for calibration
             if(type == gameWindow.DIVER)
                 set(obj.diverImageObject, 'XData', [xPos, xPos + gameWindow.DIVER_WIDTH], 'YData', [yPos + 15, yPos + gameWindow.DIVER_HEIGHT + 15], 'Clipping', 'off');
                 drawnow;
@@ -358,7 +357,7 @@ classdef gameWindow < handle
             end   
         end
         
-        function obj = removeImageObject(obj, type) % type 'diver', 'chest' are no longer used!
+        function obj = removeImageObject(obj, type)
             if(type == gameWindow.DIVER)
                 delete(obj.diverImageObject);   
             elseif(type == gameWindow.CHEST)
@@ -375,7 +374,7 @@ classdef gameWindow < handle
             % chest: 75 * 71
             xDistance = abs((obj.xDiverCurrentPos + (gameWindow.DIVER_WIDTH / 2)) - (obj.xChestCurrentPos + (gameWindow.CHEST_WIDTH / 2)));
             yDistance = abs((obj.yDiverCurrentPos + (gameWindow.DIVER_HEIGHT / 2)) - (obj.yChestCurrentPos + (gameWindow.CHEST_HEIGHT / 2)));
-            distance = sqrt(xDistance ^ 2 + yDistance ^ 2); % get the distance
+            distance = sqrt(xDistance ^ 2 + yDistance ^ 2);
             if(distance < gameWindow.SCORE_DISTANCE)
                 if(~obj.scoreStarted)
                     obj.scoreStartTime = datetime;
@@ -383,8 +382,6 @@ classdef gameWindow < handle
                     isScored = false;
                 else
                     timeTaken =  milliseconds(datetime - obj.scoreStartTime);
-                    % score only if the distance is less enough for 0.25
-                    % sec
                     if(timeTaken > 250)       
                         obj.scoreStarted = false;
                         isScored = true;
