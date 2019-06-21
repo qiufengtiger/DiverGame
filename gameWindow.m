@@ -200,6 +200,7 @@ classdef gameWindow < handle
                 if(scored)
                     obj.score = obj.score + 1;
                 end
+                % for time average result
                 scoreTimeTaken = seconds(datetime - obj.lastScoreTime);
                 switch(obj.chestPos)
                     case 0
@@ -218,10 +219,14 @@ classdef gameWindow < handle
                         obj.totalTimePos4 = obj.totalTimePos4 + scoreTimeTaken;
                         obj.numPos4 = obj.numPos4 + 1;
                 end
+                % print result
                 if(obj.chestIndex == obj.chestNumInTrial)
                     writeResult(obj);
-                end  
+                end
+                % respawn the chest
                 repaintChest(obj);
+                % reset diver to the middle of the line where the chest is
+                % spawned
                 obj.xDiverCurrentPos = gameWindow.X_WINDOW_SIZE / 2;
                 obj.yDiverCurrentPos = obj.yChestCurrentPos;
                 repaintDiver(obj);
