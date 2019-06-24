@@ -196,11 +196,10 @@ classdef gameWindow < handle
         end
         
         function obj = moveDiver(obj, command)
-            if(command == gameWindow.NOT_MOVING)
-                return
-            end
             timeTaken =  milliseconds(datetime - obj.lastMoveTime); % check time took after last input
-            obj.lastMoveTime = datetime; % reset 30 sec timer
+            if(command ~= gameWindow.NOT_MOVING)
+                obj.lastMoveTime = datetime; % reset 30 sec timer
+            end
             scored = checkScored(obj);
             % need to respawn a chest
             if(scored || timeTaken > 30000)
