@@ -63,6 +63,7 @@ classdef gameWindow < handle
         DOWN = 1;
         RIGHT = 2;
         LEFT = 3;
+        NOT_MOVING = 4;
         
         % object types
         DIVER = 0;
