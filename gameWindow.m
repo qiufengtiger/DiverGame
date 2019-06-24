@@ -84,7 +84,7 @@ classdef gameWindow < handle
         Y_SCORE_POS = 30;
         
         % game behaviors definations
-        MOVE_STEP_SIZE = 15;
+        MOVE_STEP_SIZE = 2;
         SCORE_DISTANCE = 40;
     end
         
@@ -196,6 +196,9 @@ classdef gameWindow < handle
         end
         
         function obj = moveDiver(obj, command)
+            if(command == gameWindow.NOT_MOVING)
+                return
+            end
             timeTaken =  milliseconds(datetime - obj.lastMoveTime); % check time took after last input
             obj.lastMoveTime = datetime; % reset 30 sec timer
             scored = checkScored(obj);
