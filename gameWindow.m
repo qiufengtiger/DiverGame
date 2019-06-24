@@ -1,6 +1,8 @@
 classdef gameWindow < handle
     % the game window is 650 by 650
     % variable obj refers to the gameWindow object
+    % use '< handle' such that the gameWindow object is passed by reference
+    % otherwise always update gameWindow obj using the returned value
     properties
         % game variables
         gameFigure;
@@ -162,6 +164,7 @@ classdef gameWindow < handle
             set(obj.diverImageObject, 'Visible', 'on');
             set(obj.diverImageFlippedObject, 'Visible', 'off');
             paint(obj, obj.xDiverCurrentPos, obj.yDiverCurrentPos, gameWindow.DIVER);
+            % the first chest pos hardcoded here
             obj.chestPos = 2;
             paint(obj, obj.xChestCurrentPos, obj.yChestCurrentPos, gameWindow.CHEST);
             paint(obj, gameWindow.X_SCORE_POS, gameWindow.Y_SCORE_POS, gameWindow.SCORE);
@@ -196,6 +199,7 @@ classdef gameWindow < handle
             timeTaken =  milliseconds(datetime - obj.lastMoveTime); % check time took after last input
             obj.lastMoveTime = datetime; % reset 30 sec timer
             scored = checkScored(obj);
+            % need to respawn a chest
             if(scored || timeTaken > 30000)
                 % increment score only when player captures the chest
                 if(scored)
@@ -243,6 +247,8 @@ classdef gameWindow < handle
                 yPos = obj.yDiverCurrentPos;
                 % set the diver to a new pos
                 switch(command)
+                    % up & down directions are flipped since y axis is
+                    % reversed
 %                     case gameWindow.UP
                     case gameWindow.DOWN
                         yPos = yPos + gameWindow.MOVE_STEP_SIZE;
