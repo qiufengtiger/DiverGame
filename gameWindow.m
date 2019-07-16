@@ -3,6 +3,11 @@ classdef gameWindow < handle
     % variable obj refers to the gameWindow object
     % use '< handle' such that the gameWindow object is passed by reference
     % otherwise always update gameWindow obj using the returned value
+    %
+    % Authors
+    % Feng Qiu qiuf@lafayette.edu
+    % Zachary Martin martinz@lafayette.edu
+    
     properties
         % game variables
         gameFigure;
@@ -10,6 +15,8 @@ classdef gameWindow < handle
         yDiverCurrentPos;
         xChestCurrentPos;
         yChestCurrentPos;
+        distance;
+        lostChest;
         
         % images and score display
         diverImage;
@@ -55,10 +62,13 @@ classdef gameWindow < handle
         numPos2;
         numPos3;
         numPos4;
+        
+        inputMsg;
+        gameStartTime;
     end
     
     properties(Constant)      
-        ON_TEST = 1;
+        ON_TEST = 0;
         
         % directions
         UP = 0;
@@ -84,8 +94,8 @@ classdef gameWindow < handle
         Y_SCORE_POS = 30;
         
         % game behaviors definations
-        MOVE_STEP_SIZE = 2;
-        SCORE_DISTANCE = 40;
+        MOVE_STEP_SIZE = 25;
+        SCORE_DISTANCE = 60;
     end
         
     
@@ -114,6 +124,9 @@ classdef gameWindow < handle
             obj.numPos2 = 0;
             obj.numPos3 = 0;
             obj.numPos4 = 0;
+            obj.distance = 0;
+           % obj.distanceResults = {}; 
+            obj.lostChest = {};
             
             obj.chestIndex = 1; % 1 to 11
             % though the first chest is also hardcoded, it won't be read by
@@ -125,6 +138,9 @@ classdef gameWindow < handle
                 error('lengths of two patterns do not match!');
             end
             obj.chestNumInTrial = length(obj.chestPatternR); 
+            
+            obj.inputMsg = {};
+            obj.gameStartTime = datetime;
             
             setup(obj);
         end
@@ -183,6 +199,8 @@ classdef gameWindow < handle
                         moveDiver(obj, gameWindow.RIGHT);
                     case 'leftarrow'
                         moveDiver(obj, gameWindow.LEFT);
+                    case 'q'
+                        writeMsg(obj);
                     otherwise
                         disp('command not recognized');
                 end
@@ -193,6 +211,12 @@ classdef gameWindow < handle
                 text(650 - 100, 1, 'pos 650, 1');
                 text(650 - 100, 650 - 10, 'pos 650, 650');  
             end     
+        end
+        
+        function writeMsg(obj)
+            obj.inputMsg{end + 1} = seconds(datetime - obj.gameStartTime);
+            
+            
         end
         
         function obj = moveDiver(obj, command)
@@ -206,7 +230,12 @@ classdef gameWindow < handle
                 % increment score only when player captures the chest
                 if(scored)
                     obj.score = obj.score + 1;
+                
+                elseif(timeTaken > 30000)  %record uncaptured chest data
+                    obj.lostChest{end+1} = struct('distance',obj.distance,'chestNumber',obj.chestIndex,'chestPos',obj.chestPos);
+                    %obj.distanceResults{end+1} = obj.distance;
                 end
+                   
                 % for time average result
                 scoreTimeTaken = seconds(datetime - obj.lastScoreTime);
                 switch(obj.chestPos)
@@ -242,7 +271,7 @@ classdef gameWindow < handle
                 obj.lastMoveTime = datetime; % reset 30 sec timer, might be the same as the one above
                 return
             elseif(checkBorder(obj, command))
-                disp('diver cannot move further!');
+                %disp('diver cannot move further!');
                 return
             else
                 % move
@@ -343,8 +372,20 @@ classdef gameWindow < handle
            for i = 1 : length(columnName)
                fprintf(file, '%s, %d, %d\n', columnName{i}, columnNumPos{i}, columnTime{i});
            end
+           fprintf(file, 'Score: %d\n', obj.score);
+           %=========================================
+           fprintf(file, 'Uncaptured Chest Data:\n');
+           fprintf(file, 'ChestNumber, ChestPos, Distance\n');  
+           for k = 1: length(obj.lostChest)
+               fprintf(file, '%d, %d, %d\n', obj.lostChest{k}.chestNumber, obj.lostChest{k}.chestPos, obj.lostChest{k}.distance);
+           end
+           fprintf(file, '\nKeystrokes (sec):\n');
+           for i = 1 : size(obj.inputMsg, 2)
+               fprintf(file, '%d\n', obj.inputMsg{1, i}); 
+           end
            fclose(file);
            disp('result file generated!');
+           assignin('base','uncapturedChests',obj.lostChest);
         end
          
         function obj = paint(obj, xPos, yPos, type) % type is 'diver', 'diverFlipped', 'chest' or 'score'
@@ -385,8 +426,9 @@ classdef gameWindow < handle
             % chest: 75 * 71
             xDistance = abs((obj.xDiverCurrentPos + (gameWindow.DIVER_WIDTH / 2)) - (obj.xChestCurrentPos + (gameWindow.CHEST_WIDTH / 2)));
             yDistance = abs((obj.yDiverCurrentPos + (gameWindow.DIVER_HEIGHT / 2)) - (obj.yChestCurrentPos + (gameWindow.CHEST_HEIGHT / 2)));
-            distance = sqrt(xDistance ^ 2 + yDistance ^ 2); % get the distance
-            if(distance < gameWindow.SCORE_DISTANCE)
+            obj.distance = sqrt(xDistance ^ 2 + yDistance ^ 2); % get the distance
+            %obj.distanceResults = [obj.distanceResults; distance];
+            if(obj.distance < gameWindow.SCORE_DISTANCE)
                 if(~obj.scoreStarted)
                     obj.scoreStartTime = datetime;
                     obj.scoreStarted = true;
